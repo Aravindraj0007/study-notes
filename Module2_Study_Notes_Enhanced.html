@@ -1,0 +1,182 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Module 2 Study Notes</title><style>
+  :root { color-scheme: dark; --bg:#1e1e1e; --ink:#d4d4d4; --muted:#a8a8a8; --rule:#444; --code:#151515; --accent:#80cfff; }
+  * { box-sizing:border-box; } body { margin:0; background:var(--bg); color:var(--ink); font:18px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+  main { width:min(100% - 72px, 1120px); margin:0 auto; padding:28px 0 72px; } h1,h2,h3 { line-height:1.25; margin:1.6em 0 .65em; padding-bottom:.34em; border-bottom:1px solid var(--rule); } h1 { font-size:2.1rem; margin-top:0; } h2 { font-size:1.5rem; } h3 { font-size:1.16rem; border:0; padding:0; }
+  p { margin:.7em 0 1.15em; } ul,ol { padding-left:1.5em; margin:.5em 0 1.1em; } li { margin:.28em 0; } hr { border:0; border-top:1px solid var(--rule); margin:1.45em 0; } strong { color:#f1f1f1; } code { background:var(--code); border-radius:4px; padding:.12em .32em; font: .88em Consolas,"Cascadia Code",monospace; } pre { overflow:auto; padding:16px; background:var(--code); border:1px solid var(--rule); border-radius:7px; } pre code { padding:0; background:transparent; } .table-wrap { overflow:auto; margin:1em 0 1.35em; } table { border-collapse:collapse; min-width:620px; width:fit-content; } th,td { text-align:left; padding:.45em .7em; border-bottom:1px solid var(--rule); vertical-align:top; } th { color:#f1f1f1; } .source { display:inline-block; color:var(--accent); text-decoration:none; margin-bottom:1.4em; } .source:hover { text-decoration:underline; }
+  @media (max-width:600px) { body{font-size:16px;} main{width:min(100% - 32px,1120px); padding-top:20px;} h1{font-size:1.75rem;} }
+</style></head><body><main><a class="source" href="Module2_Study_Notes_Enhanced.md">View Markdown source</a><h1>Module 02 — Cloud Storage and Data Lakes for Analytics</h1>
+<h2>Study Notes (matches your tracker&#39;s Stage 2.1 – 2.4) — Enhanced Edition</h2>
+<hr>
+<h2>Stage 2.1 — Object Storage Deep Dive</h2>
+<h3>Use cases for analytics</h3>
+<p><strong>Recap from Module 1:</strong> Object storage (S3) holds files in a flat space, each with a unique key — not a traditional folder system.</p>
+<p><strong>Why analytics workloads specifically love object storage:</strong></p>
+<ul>
+<li>It&#39;s where raw data lands first (before it&#39;s processed into a warehouse or used by ML)</li>
+<li>It&#39;s cheap enough to store <em>everything</em> — even data you might never query, &quot;just in case&quot;</li>
+<li>Every other analytics tool in your syllabus (Athena, Glue, SageMaker, Spark) can read directly from it without you moving the data anywhere</li>
+</ul>
+<p><strong>Easy example:</strong> A hospital&#39;s analytics team dumps years of raw patient-visit logs into S3. They don&#39;t know yet which years or fields they&#39;ll need for a future study — object storage lets them keep everything cheaply until they do.</p>
+<h3>Performance and storage tiers</h3>
+<p>Not all data is accessed equally often, so object storage offers different &quot;tiers&quot; — same data, different price/speed trade-off.</p>
+<div class="table-wrap"><table><thead><tr><th>Tier (AWS naming)</th><th>Access speed</th><th>Cost</th><th>Use case</th></tr></thead><tbody>
+<tr><td><strong>Hot / Standard</strong></td><td>Instant</td><td>Highest</td><td>Data accessed daily/weekly</td></tr>
+<tr><td><strong>Cool / Infrequent Access</strong></td><td>Instant, small retrieval fee</td><td>Medium</td><td>Data accessed monthly</td></tr>
+<tr><td><strong>Cold / Archive</strong></td><td>Minutes to hours to retrieve</td><td>Lowest</td><td>Old data kept for compliance, rarely touched</td></tr>
+</tbody></table></div>
+<p><strong>Easy example:</strong> Think of your phone storage vs. a cloud backup vs. a dusty hard drive in a cupboard. Photos from this week (hot) you open instantly. Photos from 3 years ago (cold) you&#39;d tolerate a slower retrieval for, because storing them cheaply matters more than speed.</p>
+<p><strong>Provider equivalence for tiers</strong> (good to know cold — exam loves asking &quot;what&#39;s the Azure/GCP name for X&quot;):</p>
+<div class="table-wrap"><table><thead><tr><th>Tier</th><th>AWS</th><th>Azure</th><th>GCP</th></tr></thead><tbody>
+<tr><td>Hot</td><td>S3 Standard</td><td>Hot Blob</td><td>Standard</td></tr>
+<tr><td>Cool</td><td>S3 Infrequent Access (S3-IA)</td><td>Cool Blob</td><td>Nearline</td></tr>
+<tr><td>Cold/Archive</td><td>S3 Glacier</td><td>Archive Blob</td><td>Coldline / Archive</td></tr>
+</tbody></table></div>
+<h3>Analyzing suitability of storage tiers for scenarios</h3>
+<p>This is a judgment skill, not a fact to memorize — the question is always &quot;how often is this data accessed, and how fast do I need it back?&quot;</p>
+<div class="table-wrap"><table><thead><tr><th>Scenario</th><th>Right tier</th><th>Why</th></tr></thead><tbody>
+<tr><td>Live dashboard pulling today&#39;s sales</td><td>Hot</td><td>Needs instant access</td></tr>
+<tr><td>Monthly compliance reports</td><td>Cool</td><td>Accessed occasionally, some delay is fine</td></tr>
+<tr><td>7-year-old financial records (legal requirement to keep)</td><td>Cold/Archive</td><td>Almost never accessed, just needs to exist cheaply</td></tr>
+</tbody></table></div>
+<p><strong>Quick decision rule to use in exams:</strong> ask two questions — <em>(1) how often is it read? (2) how fast do I need it back when I do read it?</em> High frequency + fast → Hot. Low frequency + can tolerate delay → Cold. Anything in between → Cool.</p>
+<hr>
+<h2>Stage 2.2 — Building Data Lakes on the Cloud</h2>
+<h3>Architecture patterns</h3>
+<p><strong>Recap:</strong> A data lake = raw data stored cheaply (usually on S3), structured later when queried (schema-on-read).</p>
+<p>A common real-world data lake isn&#39;t one giant messy pile — it&#39;s organized into <strong>layers</strong>, often called the <strong>medallion architecture</strong> (bronze/silver/gold — worth knowing even though your syllabus doesn&#39;t name it directly, since it&#39;s the standard pattern):</p>
+<ul>
+<li><strong>Raw/Bronze layer</strong> — data exactly as it arrived, untouched, unstructured</li>
+<li><strong>Cleaned/Silver layer</strong> — duplicates removed, formats fixed, still fairly raw</li>
+<li><strong>Curated/Gold layer</strong> — fully cleaned, aggregated, ready for a warehouse or dashboard</li>
+</ul>
+<p><strong>Easy example:</strong> Think of a messy garage (bronze) → sorted into labeled boxes (silver) → the specific box brought into the house because you need it right now (gold).</p>
+<p><strong>What this looks like as actual S3 folder structure</strong> (this is how it&#39;s done in practice, and a likely practical/exam scenario):</p>
+<pre><code>s3://company-datalake/
+├── bronze/
+│   └── orders/2026/08/07/orders_raw.json
+├── silver/
+│   └── orders/2026/08/07/orders_cleaned.parquet
+└── gold/
+    └── orders_daily_summary/2026/08/orders_summary.parquet</code></pre>
+<p>Notice: bronze keeps the raw format (JSON, as it arrived), silver/gold convert to Parquet once cleaned (ties into Stage 2.3 below) — this is a common exam &quot;trace the pipeline&quot; question.</p>
+<h3>Metadata management</h3>
+<p><strong>Metadata = &quot;data about the data.&quot;</strong> Not the actual file contents, but details like: when was it created, what format is it, what does each column mean, who owns it.</p>
+<p><strong>Why it matters:</strong> A lake with millions of raw files is useless if nobody knows what&#39;s inside each one. Metadata is what makes a lake searchable instead of just a dumping ground.</p>
+<p><strong>Easy example:</strong> A library with thousands of books but no catalog card system — you&#39;d have to open every single book to find what you want. Metadata is the catalog card.</p>
+<p><strong>Concrete example of metadata for one file:</strong></p>
+<div class="table-wrap"><table><thead><tr><th>Field</th><th>Value</th></tr></thead><tbody>
+<tr><td>File</td><td><code>orders_2026_08.parquet</code></td></tr>
+<tr><td>Created</td><td>2026-08-07</td></tr>
+<tr><td>Format</td><td>Parquet</td></tr>
+<tr><td>Rows</td><td>1,204,532</td></tr>
+<tr><td>Columns</td><td>order_id (int), customer_id (int), amount (float), order_date (date)</td></tr>
+<tr><td>Owner</td><td>data-eng team</td></tr>
+<tr><td>Sensitivity</td><td>Internal — contains customer_id</td></tr>
+</tbody></table></div>
+<h3>Data catalog services</h3>
+<p>A <strong>data catalog</strong> is the actual tool/service that stores and manages all that metadata, and lets people (or other services) search &quot;what data do we have, and where is it?&quot;</p>
+<p>Tool: <strong>AWS Glue Data Catalog</strong> (also used later for ETL in Module 4).</p>
+<p><strong>Easy example:</strong> Google Search for your company&#39;s data lake — you type &quot;customer transactions 2023&quot; and it tells you exactly which S3 folder/file has it, what columns it has, without you manually browsing.</p>
+<p><strong>How you&#39;d actually create one (Glue Crawler via CLI)</strong> — a crawler is the tool that scans your S3 data and auto-populates the catalog:</p>
+<pre><code>aws glue create-crawler \
+  --name orders-crawler \
+  --role AWSGlueServiceRole \
+  --database-name analytics_db \
+  --targets &#39;{&quot;S3Targets&quot;: [{&quot;Path&quot;: &quot;s3://company-datalake/silver/orders/&quot;}]}&#39;
+
+aws glue start-crawler --name orders-crawler
+
+# after it finishes, check what schema it detected:
+aws glue get-table --database-name analytics_db --name orders</code></pre>
+<p>Once this runs, the table <code>orders</code> becomes queryable by Athena (Module 3) directly — no manual schema definition needed.</p>
+<hr>
+<h2>Stage 2.3 — Storage Formats for Analytics</h2>
+<p>This is about <em>how</em> a file is physically structured on disk — it directly affects how fast you can query it later.</p>
+<h3>Row-based vs Column-based (the concept behind all 3 formats)</h3>
+<ul>
+<li><strong>Row-based</strong> (like a CSV) stores each full record together — great for grabbing one entire row fast, bad for scanning just one column across millions of rows.</li>
+<li><strong>Column-based</strong> stores each column together — great for analytics, where you often want &quot;just the sales column across all 10 million rows,&quot; not the whole record.</li>
+</ul>
+<p><strong>Easy example:</strong> Row-based is like a filing cabinet where each folder is one customer&#39;s full file. Column-based is like separate folders for &quot;all phone numbers,&quot; &quot;all emails,&quot; &quot;all addresses&quot; — if you only need everyone&#39;s email, you open one folder, not ten thousand.</p>
+<p><strong>Visual — same 3-row table, stored two ways:</strong></p>
+<pre><code>Table:
+| id | name  | amount |
+|  1 | Asha  | 500    |
+|  2 | Ravi  | 750    |
+|  3 | Meera | 300    |
+
+Row-based storage on disk (CSV-style):
+[1,Asha,500] [2,Ravi,750] [3,Meera,300]
+→ to read &quot;amount&quot; only, you still touch every full record.
+
+Column-based storage on disk (Parquet-style):
+id:     [1, 2, 3]
+name:   [Asha, Ravi, Meera]
+amount: [500, 750, 300]
+→ to read &quot;amount&quot; only, you read ONE block: [500, 750, 300]. Skip id and name entirely.</code></pre>
+<h3>Parquet</h3>
+<ul>
+<li>The most common analytics format. Column-based, compressed, widely supported (Athena, Redshift Spectrum, Spark, BigQuery all read it natively).</li>
+<li><strong>Easy example:</strong> If your syllabus&#39;s practical component has you &quot;work with Parquet files,&quot; this is the format you&#39;ll actually convert a CSV into and query faster afterward.</li>
+</ul>
+<h3>Avro</h3>
+<ul>
+<li>Row-based, but still efficient — designed more for <em>data that&#39;s being transferred/streamed</em> (like between systems) rather than for analytical queries.</li>
+<li><strong>Easy example:</strong> Good for message queues/streaming pipelines (like Kafka, which you&#39;ll meet in Module 4) — you&#39;re moving whole records quickly, not scanning columns.</li>
+</ul>
+<h3>ORC (Optimized Row Columnar)</h3>
+<ul>
+<li>Also column-based like Parquet, developed originally for the Hadoop ecosystem (Hive). Very similar purpose to Parquet, slightly different internals — the exam-relevant point is just &quot;another columnar analytics format,&quot; not that you need to know internal differences deeply.</li>
+</ul>
+<h3>Why columnar formats beat row-based formats for analytics</h3>
+<p>Three reasons, all connected:</p>
+<ol>
+<li><strong>Faster queries</strong> — only read the columns you actually need, skip the rest</li>
+<li><strong>Better compression</strong> — similar data (all numbers, all dates) sitting together compresses much better than mixed row data</li>
+<li><strong>Lower cost</strong> — services like Athena charge by data scanned; scanning less data (because you skip unused columns) = cheaper queries</li>
+</ol>
+<p><strong>Quick comparison table:</strong></p>
+<div class="table-wrap"><table><thead><tr><th>Format</th><th>Structure</th><th>Best for</th></tr></thead><tbody>
+<tr><td>CSV</td><td>Row-based, uncompressed</td><td>Simple, human-readable, but slow/expensive at scale</td></tr>
+<tr><td>Avro</td><td>Row-based, compressed</td><td>Streaming/transferring whole records</td></tr>
+<tr><td>Parquet</td><td>Column-based, compressed</td><td>Analytical queries (most common choice)</td></tr>
+<tr><td>ORC</td><td>Column-based, compressed</td><td>Analytical queries (Hadoop/Hive ecosystem)</td></tr>
+</tbody></table></div>
+<hr>
+<h2>Stage 2.4 — Practical Component</h2>
+<p>What you should actually be able to <em>do</em>. Each item now has the actual command/code, not just the checkbox.</p>
+<ul>
+<li>[ ] <strong>Upload/manage data in cloud object storage</strong> — create files/folders in an S3 bucket, delete/move objects</li>
+<p>``<code>bash aws s3 mb s3://my-datalake-demo aws s3 cp orders.csv s3://my-datalake-demo/bronze/orders/ aws s3 mv s3://my-datalake-demo/bronze/orders/orders.csv \ s3://my-datalake-demo/bronze/orders/2026-08-07/orders.csv aws s3 rm s3://my-datalake-demo/bronze/orders/2026-08-07/orders.csv </code>``</p>
+</ul>
+<ul>
+<li>[ ] <strong>Use CLI/SDK to interact with storage</strong> — e.g., AWS CLI <code>aws s3 cp</code>, or Python&#39;s <code>boto3</code></li>
+<p>```python import boto3</p>
+</ul>
+<p>s3 = boto3.client(&quot;s3&quot;)</p>
+<p># upload s3.upload_file(&quot;orders.csv&quot;, &quot;my-datalake-demo&quot;, &quot;bronze/orders/orders.csv&quot;)</p>
+<p># download s3.download_file(&quot;my-datalake-demo&quot;, &quot;bronze/orders/orders.csv&quot;, &quot;orders_local.csv&quot;)</p>
+<p># list what&#39;s in a &quot;folder&quot; (prefix) resp = s3.list_objects_v2(Bucket=&quot;my-datalake-demo&quot;, Prefix=&quot;bronze/orders/&quot;) for obj in resp.get(&quot;Contents&quot;, []): print(obj[&quot;Key&quot;], obj[&quot;Size&quot;]) ```</p>
+<ul>
+<li>[ ] <strong>Work with Parquet files in a cloud context</strong> — convert a CSV to Parquet, upload it, notice the smaller file size</li>
+<p>```python import pandas as pd import boto3 import os</p>
+</ul>
+<p># read CSV, write as Parquet df = pd.read_csv(&quot;orders.csv&quot;) df.to_parquet(&quot;orders.parquet&quot;, engine=&quot;pyarrow&quot;, compression=&quot;snappy&quot;)</p>
+<p>print(&quot;CSV size:&quot;, os.path.getsize(&quot;orders.csv&quot;), &quot;bytes&quot;) print(&quot;Parquet size:&quot;, os.path.getsize(&quot;orders.parquet&quot;), &quot;bytes&quot;) # Parquet is typically 4-10x smaller than CSV for the same data</p>
+<p># upload the Parquet version to the silver layer s3 = boto3.client(&quot;s3&quot;) s3.upload_file(&quot;orders.parquet&quot;, &quot;my-datalake-demo&quot;, &quot;silver/orders/orders.parquet&quot;) ```</p>
+<ul>
+<li>[ ] <strong>Set up a basic data catalog crawler</strong> — point an AWS Glue crawler at your S3 data, let it auto-detect the schema and register it in the Glue Data Catalog</li>
+<p>```bash aws glue create-crawler \ --name my-orders-crawler \ --role AWSGlueServiceRole \ --database-name analytics_db \ --targets &#39;{&quot;S3Targets&quot;: [{&quot;Path&quot;: &quot;s3://my-datalake-demo/silver/orders/&quot;}]}&#39;</p>
+</ul>
+<p>aws glue start-crawler --name my-orders-crawler</p>
+<p># verify: list tables the crawler created aws glue get-tables --database-name analytics_db ``<code> Once cataloged, the table is immediately queryable via Athena — no manual </code>CREATE TABLE` needed (you&#39;ll use this directly in Module 3).</p>
+<hr>
+<h2>Module 2 — Self-Test (with Answer Key)</h2>
+<p>Try answering first, then check.</p>
+<p><strong>1. Why do analytics teams prefer object storage over a regular database for raw incoming data?</strong> &gt; It&#39;s cheap enough to store everything &quot;just in case,&quot; doesn&#39;t require defining a schema upfront, and every analytics tool (Athena, Glue, Spark, SageMaker) can read directly from it without moving the data.</p>
+<p><strong>2. What&#39;s the difference between hot, cool, and cold storage tiers?</strong> &gt; Hot = instant access, highest cost, for frequently accessed data. Cool = instant access with a small retrieval fee, medium cost, for occasionally accessed data. Cold/Archive = minutes-to-hours retrieval time, lowest cost, for rarely accessed data (e.g., compliance archives).</p>
+<p><strong>3. What does &quot;metadata&quot; mean, and why does a data lake need it?</strong> &gt; Metadata is &quot;data about the data&quot; — creation date, format, column meaning, ownership, etc. Without it, a lake with millions of files is unsearchable; you&#39;d have to open every file to know what&#39;s inside. A data catalog stores and makes this metadata searchable.</p>
+<p><strong>4. What&#39;s the difference between row-based and column-based storage?</strong> &gt; Row-based stores each full record together (fast to fetch one whole row, wasteful to scan one column across millions of rows). Column-based stores each column together (fast to scan one column across all rows, since you skip unrelated columns entirely).</p>
+<p><strong>5. Name the 3 storage formats covered, and which one is most common for analytics.</strong> &gt; Parquet, Avro, ORC. Parquet is the most common for analytics (column-based, compressed, universally supported). Avro is row-based and better suited to streaming/transferring whole records. ORC is column-based like Parquet, mainly used in the Hadoop/Hive ecosystem.</p>
+<p><strong>6. Why does scanning less data (via columnar formats) actually save money on cloud tools like Athena?</strong> &gt; Athena bills by the amount of data scanned per query. Columnar formats let the engine read only the specific columns a query needs and skip the rest physically on disk — so a query that needs 2 of 20 columns scans roughly 1/10th the data of a row-based file, directly cutting the bill.</p>
+<p>If you can answer all 6 without scrolling up, Module 2 is done — tick off Stage 2.1–2.4 in your tracker.</p></main></body></html>

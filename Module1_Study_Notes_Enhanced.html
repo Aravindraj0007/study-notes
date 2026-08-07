@@ -1,0 +1,216 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Module 1 Study Notes</title><style>
+  :root { color-scheme: dark; --bg:#1e1e1e; --ink:#d4d4d4; --muted:#a8a8a8; --rule:#444; --code:#151515; --accent:#80cfff; }
+  * { box-sizing:border-box; } body { margin:0; background:var(--bg); color:var(--ink); font:18px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+  main { width:min(100% - 72px, 1120px); margin:0 auto; padding:28px 0 72px; } h1,h2,h3 { line-height:1.25; margin:1.6em 0 .65em; padding-bottom:.34em; border-bottom:1px solid var(--rule); } h1 { font-size:2.1rem; margin-top:0; } h2 { font-size:1.5rem; } h3 { font-size:1.16rem; border:0; padding:0; }
+  p { margin:.7em 0 1.15em; } ul,ol { padding-left:1.5em; margin:.5em 0 1.1em; } li { margin:.28em 0; } hr { border:0; border-top:1px solid var(--rule); margin:1.45em 0; } strong { color:#f1f1f1; } code { background:var(--code); border-radius:4px; padding:.12em .32em; font: .88em Consolas,"Cascadia Code",monospace; } pre { overflow:auto; padding:16px; background:var(--code); border:1px solid var(--rule); border-radius:7px; } pre code { padding:0; background:transparent; } .table-wrap { overflow:auto; margin:1em 0 1.35em; } table { border-collapse:collapse; min-width:620px; width:fit-content; } th,td { text-align:left; padding:.45em .7em; border-bottom:1px solid var(--rule); vertical-align:top; } th { color:#f1f1f1; } .source { display:inline-block; color:var(--accent); text-decoration:none; margin-bottom:1.4em; } .source:hover { text-decoration:underline; }
+  @media (max-width:600px) { body{font-size:16px;} main{width:min(100% - 32px,1120px); padding-top:20px;} h1{font-size:1.75rem;} }
+</style></head><body><main><a class="source" href="Module1_Study_Notes_Enhanced.md">View Markdown source</a><h1>Module 01 — Introduction to Cloud and Analytics Services</h1>
+<h2>Study Notes (matches your tracker&#39;s Stage 1.1 – 1.5) — Enhanced Edition</h2>
+<hr>
+<h2>Stage 1.1 — Cloud Computing Basics</h2>
+<h3>Cloud Computing Fundamentals</h3>
+<p><strong>Definition:</strong> Cloud computing is the delivery of computing resources (servers, storage, databases, software) over the internet, on-demand, with pay-per-use pricing — instead of owning and maintaining physical hardware.</p>
+<p><strong>Four defining properties:</strong></p>
+<div class="table-wrap"><table><thead><tr><th>Property</th><th>Meaning</th></tr></thead><tbody>
+<tr><td>On-demand</td><td>Get resources instantly, no procurement delay</td></tr>
+<tr><td>Pay-as-you-go</td><td>Charged only for what you use, no idle cost</td></tr>
+<tr><td>Elasticity/Scalability</td><td>Resources grow/shrink automatically with demand</td></tr>
+<tr><td>Managed infrastructure</td><td>Provider handles hardware, cooling, maintenance</td></tr>
+</tbody></table></div>
+<p><strong>Easy example:</strong> Think of Ola/Uber. You don&#39;t own the car, you don&#39;t service it, you don&#39;t pay when you&#39;re not riding — you just book it when needed and pay only for that trip. Netflix doesn&#39;t own a million physical computers; it rents exactly as much computing power as it needs from AWS, and that amount changes automatically — more servers during peak evening hours, fewer at 4 AM.</p>
+<p><strong>Deployment models:</strong></p>
+<ul>
+<li><strong>Public cloud</strong> — shared infrastructure, owned by provider (AWS, Azure, GCP). <em>Example: any startup using AWS.</em></li>
+<li><strong>Private cloud</strong> — dedicated infrastructure for one organization. <em>Example: a bank running its own private servers for extra security.</em></li>
+<li><strong>Hybrid cloud</strong> — mix of both. <em>Example: a hospital keeping patient records on a private cloud but using public cloud for its website.</em></li>
+</ul>
+<h3>Overview of Major Providers</h3>
+<div class="table-wrap"><table><thead><tr><th>Provider</th><th>Owner</th><th>Known for</th></tr></thead><tbody>
+<tr><td><strong>AWS</strong></td><td>Amazon</td><td>Largest market share, most mature, widest service range</td></tr>
+<tr><td><strong>Azure</strong></td><td>Microsoft</td><td>Strong with enterprises already on Microsoft stack</td></tr>
+<tr><td><strong>GCP</strong></td><td>Google</td><td>Strong in data analytics and ML (BigQuery, Vertex AI)</td></tr>
+</tbody></table></div>
+<p><strong>Easy example:</strong> Like Swiggy, Zomato, and Uber Eats — three food delivery apps that all do the same job, just with different branding and slightly different strengths. AWS/Azure/GCP rent you the same kind of computing services, just under different names.</p>
+<p><strong>Exam point:</strong> Most cloud analytics concepts are provider-agnostic — the same service exists under a different name on each platform. Learn AWS deeply (your syllabus leans this way), and map Azure/GCP as synonyms.</p>
+<h3>📋 Provider Equivalence — Master Table (Module 1 scope)</h3>
+<p>Keep this one memorized cold — it&#39;s the fastest way to answer &quot;what&#39;s the Azure/GCP equivalent of X&quot; questions.</p>
+<div class="table-wrap"><table><thead><tr><th>Category</th><th>AWS</th><th>Azure</th><th>GCP</th></tr></thead><tbody>
+<tr><td>Compute (VM)</td><td>EC2</td><td>Virtual Machines</td><td>Compute Engine</td></tr>
+<tr><td>Object Storage</td><td>S3</td><td>Blob Storage</td><td>Cloud Storage</td></tr>
+<tr><td>Managed SQL</td><td>RDS</td><td>SQL Database</td><td>Cloud SQL</td></tr>
+<tr><td>Data Warehouse</td><td>Redshift</td><td>Synapse</td><td>BigQuery</td></tr>
+<tr><td>ML Platform</td><td>SageMaker</td><td>Azure ML</td><td>Vertex AI</td></tr>
+<tr><td>Managed Hadoop/Spark cluster</td><td>EMR</td><td>HDInsight</td><td>Dataproc</td></tr>
+</tbody></table></div>
+<hr>
+<h2>Stage 1.2 — Core Cloud Services</h2>
+<p>Three building blocks everything else in this course sits on top of.</p>
+<h3>Compute</h3>
+<ul>
+<li>Rented processing power — a virtual machine you configure (CPU, RAM, OS).</li>
+<li>AWS: <strong>EC2</strong> | Azure: Virtual Machines | GCP: Compute Engine</li>
+<li><strong>Easy example:</strong> Like renting a laptop for a month instead of buying one. Choose how powerful it is, run your app on it, stop paying when you&#39;re done.</li>
+</ul>
+<h3>Object Storage</h3>
+<ul>
+<li>Storage for files (unstructured/semi-structured) — a flat space where each file has a unique &quot;key,&quot; not a traditional folder system.</li>
+<li>AWS: <strong>S3</strong> | Azure: Blob Storage | GCP: Cloud Storage</li>
+<li><strong>Easy example:</strong> Like Google Drive. Dump any file — photos, videos, datasets — each with its own link. Instagram stores every uploaded photo this way.</li>
+</ul>
+<h3>Databases — Managed SQL</h3>
+<ul>
+<li>A relational (SQL) database where the provider handles setup, patching, backups, and scaling.</li>
+<li>AWS: <strong>RDS</strong> | Azure: SQL Database | GCP: Cloud SQL</li>
+<li><strong>Easy example:</strong> Like an Excel sheet with rows/columns (e.g., a college&#39;s student database), except the provider backs it up and keeps it running so you never touch the server.</li>
+</ul>
+<p><strong>Why not just store everything in Object Storage?</strong> S3 can <em>hold</em> a file with SQL-style data, but it can&#39;t <em>run queries</em> on it — you&#39;d have to download the whole file and search manually. RDS actually understands rows/columns and lets you ask &quot;show me marks above 90&quot; directly and instantly. Object storage is a locker; a database is an indexed library.</p>
+<p><strong>Memory hook:</strong> Compute = <em>does the work</em>, Storage = <em>holds the files</em>, Managed SQL = <em>organizes and queries structured records</em>.</p>
+<hr>
+<h2>Stage 1.3 — Landscape of Cloud Analytics</h2>
+<p>Once you have Compute + Storage + Database, companies build <strong>analytics systems</strong> on top. Five pieces, usually working together in a pipeline:</p>
+<h3>Data Warehousing</h3>
+<ul>
+<li>A database tuned for <strong>analysis</strong> (OLAP), not transactions (OLTP). Stores data column-by-column so it can scan millions of rows on one field fast.</li>
+<li>Tools: Redshift (AWS), Synapse (Azure), BigQuery (GCP)</li>
+<li><strong>Easy example:</strong> Flipkart&#39;s checkout system (RDS) places one order in milliseconds. Flipkart&#39;s warehouse (Redshift) answers &quot;total revenue by state, by category, last 3 years&quot; in seconds — a completely different job.</li>
+</ul>
+<h3>Data Lakes</h3>
+<ul>
+<li>Raw, unstructured storage (built on object storage) — store first, structure later. Called <strong>schema-on-read</strong>, vs. a warehouse&#39;s <strong>schema-on-write</strong>.</li>
+<li><strong>Easy example:</strong> Uber&#39;s data lake stores every GPS ping raw and unsorted, because at collection time they don&#39;t know exactly what analysis they&#39;ll run later.</li>
+</ul>
+<h3>ETL/ELT</h3>
+<ul>
+<li>The pipeline that moves data from source to destination:</li>
+<li><strong>Extract</strong> — pull data out of the source</li>
+<li><strong>Transform</strong> — clean, dedupe, reshape it</li>
+<li><strong>Load</strong> — place it into the destination</li>
+<li><strong>ETL</strong>: transform <em>before</em> loading (used for warehouses, needs clean structured data going in)</li>
+<li><strong>ELT</strong>: load raw <em>first</em>, transform <em>later</em>, inside the destination itself (modern, lake-friendly)</li>
+<li><strong>Easy example:</strong> ETL = washing clothes before putting them in the cupboard. ELT = dumping clothes in first, washing only what you need to wear.</li>
+</ul>
+<h3>ML Platforms</h3>
+<ul>
+<li>Managed environment to train, deploy, and serve ML models without owning GPU hardware.</li>
+<li>Tools: SageMaker (AWS), Azure ML, Vertex AI (GCP)</li>
+<li><strong>Easy example:</strong> Like using a photocopy shop instead of buying your own printer — rent the platform, upload data, it trains/deploys the model for you.</li>
+</ul>
+<h3>Visualization Tools (overview — deep dive in Module 5)</h3>
+<ul>
+<li>Dashboards that connect to a warehouse/lake and turn raw numbers into charts.</li>
+<li>Example: Power BI</li>
+<li><strong>Easy example:</strong> Like a school report card — raw marks turned into a simple summary a parent can read at a glance.</li>
+</ul>
+<p><strong>How the 5 pieces connect:</strong></p>
+<pre><code>                         ┌───────────────────┐
+  App / Sensors ───────► │   ETL / ELT        │   (clean &amp; move data)
+                         └─────────┬──────────┘
+                                   │
+                     ┌─────────────┴─────────────┐
+                     ▼                            ▼
+              ┌─────────────┐              ┌─────────────┐
+              │  Data Lake   │◄────────────►│ Data Warehouse│
+              │ (raw, S3)    │   (curated    │ (structured,  │
+              │              │    data flows │  fast to query)│
+              │              │    into DW)   │               │
+              └──────┬───────┘              └──────┬────────┘
+                     │                              │
+                     ▼                              ▼
+              ┌─────────────┐              ┌─────────────────┐
+              │ ML Platform  │              │ Visualization Tool│
+              │ (train models│              │ (Power BI charts /│
+              │  on this data)│             │  dashboards)      │
+              └─────────────┘              └─────────────────┘</code></pre>
+<p>This is literally your whole syllabus in one diagram — Module 2 = Data Lakes, Module 3 = Warehousing, Module 4 = ETL/ELT + ML, Module 5 = Visualization.</p>
+<hr>
+<h2>Stage 1.4 — Big Data Fundamentals</h2>
+<h3>Big Data — Characteristics (the 3 Vs)</h3>
+<ol>
+<li><strong>Volume</strong> — massive scale (terabytes to petabytes). <em>Facebook generates 4+ petabytes daily.</em> → <strong>Why cloud helps:</strong> object storage (S3) scales storage infinitely and cheaply; a single on-prem server/disk array simply can&#39;t hold or grow to this scale on demand.</li>
+<li><strong>Velocity</strong> — speed of arrival (real-time feeds). <em>Every swipe on Zomato, every live cricket score update.</em> → <strong>Why cloud helps:</strong> serverless/streaming services (Lambda, Kafka on managed clusters — Module 4) can absorb sudden bursts of incoming events without you pre-provisioning capacity for the worst case.</li>
+<li><strong>Variety</strong> — mixed formats (text, images, video, logs). <em>WhatsApp handles text, voice, images, video, location — all at once.</em> → <strong>Why cloud helps:</strong> object storage doesn&#39;t care about file type/schema, so all varieties land in the same lake without needing a different system per format.</li>
+</ol>
+<p><strong>Extended (5 Vs, sometimes asked):</strong></p>
+<ol>
+<li><strong>Veracity</strong> — trustworthiness of data. <em>Fake reviews on Amazon reduce veracity.</em> → <strong>Why cloud helps:</strong> data catalogs and metadata tools (Module 2) plus validation steps in ETL pipelines (Module 4) let you flag/quarantine untrustworthy data before it reaches analytics, at a scale no manual review process could match.</li>
+<li><strong>Value</strong> — whether the data is actually useful. <em>A million random tweets are useless unless you extract real sentiment from them.</em> → <strong>Why cloud helps:</strong> cheap storage (keep everything) + on-demand ML platforms (SageMaker/Vertex AI) mean you can affordably run experiments to <em>find</em> the value later, instead of deciding upfront what&#39;s worth keeping.</li>
+</ol>
+<p><strong>Why it matters:</strong> A single server can&#39;t handle data at this scale/speed — that&#39;s exactly why Hadoop and Spark exist.</p>
+<h3>Hadoop</h3>
+<ul>
+<li>Original distributed processing framework. Core mechanism: <strong>MapReduce</strong>.</li>
+<li><strong>Map</strong> — split the big job into small pieces, process each on a different machine</li>
+<li><strong>Reduce</strong> — combine all small results into one final answer</li>
+<li><strong>Easy example:</strong> Counting national election votes — each state counts its own votes first (Map), then all totals get added up (Reduce).</li>
+<li>Limitation: writes intermediate results to disk at every step → slower.</li>
+</ul>
+<p><strong>Concrete example — Word Count (the &quot;Hello World&quot; of MapReduce):</strong></p>
+<p>Input (3 lines spread across 3 machines):</p>
+<pre><code>Machine 1: &quot;the cat sat&quot;
+Machine 2: &quot;the dog ran&quot;
+Machine 3: &quot;the cat ran&quot;</code></pre>
+<p><strong>Map step</strong> (each machine emits <code>word: 1</code> pairs independently):</p>
+<pre><code>M1 → (the,1) (cat,1) (sat,1)
+M2 → (the,1) (dog,1) (ran,1)
+M3 → (the,1) (cat,1) (ran,1)</code></pre>
+<p><strong>Shuffle</strong> (group same words together, across machines):</p>
+<pre><code>the → [1,1,1]
+cat → [1,1]
+sat → [1]
+dog → [1]
+ran → [1,1]</code></pre>
+<p><strong>Reduce step</strong> (sum each group):</p>
+<pre><code>the: 3, cat: 2, sat: 1, dog: 1, ran: 2</code></pre>
+<h3>Spark</h3>
+<ul>
+<li>Faster alternative — keeps data <strong>in memory (RAM)</strong> instead of disk → <strong>10–100x faster</strong>.</li>
+<li>Also handles streaming, SQL, and ML — not just batch processing like Hadoop.</li>
+<li><strong>Easy example:</strong> Hadoop is a student writing every rough step on paper. Spark solves it mentally, only writing the final answer.</li>
+</ul>
+<p><strong>On the cloud:</strong> you don&#39;t install Hadoop/Spark manually — you spin up a managed cluster (AWS EMR, Databricks) that&#39;s pre-configured.</p>
+<p><strong>The same word count in PySpark</strong> (what you&#39;d actually run on a managed Spark cluster):</p>
+<pre><code>from pyspark.sql import SparkSession
+
+spark = SparkSession.builder.appName(&quot;WordCount&quot;).getOrCreate()
+text = spark.sparkContext.textFile(&quot;s3://my-bucket/input.txt&quot;)
+
+counts = (text
+          .flatMap(lambda line: line.split(&quot; &quot;))   # Map
+          .map(lambda word: (word, 1))
+          .reduceByKey(lambda a, b: a + b))          # Reduce
+
+counts.saveAsTextFile(&quot;s3://my-bucket/output/&quot;)</code></pre>
+<hr>
+<h2>Stage 1.5 — Practical Component</h2>
+<p>What you should actually be able to <em>do</em>, not just know. Each item below now has the actual command/step, not just the checkbox.</p>
+<ul>
+<li>[ ] <strong>Navigate a cloud console</strong> — log into the AWS Console → use the top search bar → type &quot;EC2&quot;, &quot;S3&quot;, &quot;RDS&quot; to jump straight to each service&#39;s dashboard.</li>
+</ul>
+<ul>
+<li>[ ] <strong>Launch a basic VM (EC2)</strong></li>
+<p>``<code>bash # Via AWS CLI (after </code>aws configure<code> with your credentials): aws ec2 run-instances \ --image-id ami-0abcdef1234567890 \ --instance-type t2.micro \ --key-name my-key-pair \ --security-groups default </code>`<code> Console alternative: EC2 → Launch Instance → pick <strong>Free Tier eligible</strong> AMI (e.g. Amazon Linux) → </code>t2.micro<code> → Launch → connect via &quot;Connect&quot; button (browser SSH) or your terminal: </code>`<code>bash ssh -i my-key-pair.pem ec2-user@&lt;public-ip&gt; </code>``</p>
+</ul>
+<ul>
+<li>[ ] <strong>Create a storage bucket/container (S3)</strong></li>
+<p>``<code>bash aws s3 mb s3://my-analytics-bucket-2026 aws s3 cp local_file.csv s3://my-analytics-bucket-2026/ aws s3 ls s3://my-analytics-bucket-2026/ </code>`<code> Same thing with Python&#39;s </code>boto3<code> (useful since Glue/SageMaker/Lambda all use it too): </code>``python import boto3</p>
+</ul>
+<p>s3 = boto3.client(&quot;s3&quot;) s3.create_bucket(Bucket=&quot;my-analytics-bucket-2026&quot;) s3.upload_file(&quot;local_file.csv&quot;, &quot;my-analytics-bucket-2026&quot;, &quot;local_file.csv&quot;)</p>
+<p>for obj in s3.list_objects_v2(Bucket=&quot;my-analytics-bucket-2026&quot;)[&quot;Contents&quot;]: print(obj[&quot;Key&quot;]) ```</p>
+<ul>
+<li>[ ] <strong>Explore basic database service setup (RDS)</strong> — Console: RDS → Create database → choose engine (e.g. PostgreSQL/MySQL) → Free tier template → note down the <strong>endpoint</strong> (hostname), <strong>port</strong>, <strong>username</strong>, and make sure the security group allows inbound traffic from your IP. Test connection:</li>
+<p>``<code>bash psql -h &lt;rds-endpoint&gt; -U &lt;username&gt; -d postgres -p 5432 </code>``</p>
+</ul>
+<ul>
+<li>[ ] <strong>MapReduce demonstration</strong> — trace the Word Count example above by hand on paper with a 3–4 word sentence of your own; then, if you have Spark set up locally or via a free Databricks community account, run the PySpark snippet above on a small <code>.txt</code> file to see it execute for real.</li>
+</ul>
+<hr>
+<h2>Module 1 — Self-Test (with Answer Key)</h2>
+<p>Try answering first, then check.</p>
+<p><strong>1. What are the 4 defining properties of cloud computing?</strong> &gt; On-demand, Pay-as-you-go, Elasticity/Scalability, Managed infrastructure.</p>
+<p><strong>2. Name the AWS equivalents of Compute, Object Storage, and Managed SQL.</strong> &gt; EC2, S3, RDS.</p>
+<p><strong>3. Why can&#39;t you just query SQL-style data sitting in S3 directly?</strong> &gt; S3 only <em>stores</em> files — it has no query engine that understands rows/columns/relationships. You&#39;d have to download and parse the whole file manually. (Note: this is also exactly what serverless querying tools like Athena solve in Module 3 — they let you run SQL directly on S3 without needing an RDS/warehouse.)</p>
+<p><strong>4. What&#39;s the difference between a data warehouse and a data lake (schema-on-write vs schema-on-read)?</strong> &gt; A warehouse enforces structure <em>before</em> data is loaded (schema-on-write) — data must already be clean/structured. A lake stores raw data as-is and structure is applied only when you read/query it later (schema-on-read).</p>
+<p><strong>5. What&#39;s the difference between ETL and ELT?</strong> &gt; ETL transforms data <em>before</em> loading it into the destination (needed for warehouses). ELT loads raw data first and transforms it later, inside the destination itself (common with modern lakes/warehouses that have their own compute).</p>
+<p><strong>6. Name the 3 Vs of big data.</strong> &gt; Volume, Velocity, Variety. (Extended: + Veracity, Value.)</p>
+<p><strong>7. Why is Spark faster than Hadoop&#39;s MapReduce?</strong> &gt; Spark keeps data in memory (RAM) across processing steps instead of writing intermediate results to disk after every step like Hadoop does — this avoids repeated slow disk I/O, giving roughly 10–100x speedup.</p>
+<p>If you can answer all 7 without scrolling up, Module 1 is done — tick off Stage 1.1–1.5 in your tracker.</p></main></body></html>

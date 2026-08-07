@@ -1,0 +1,140 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Module 3 Study Notes</title><style>
+  :root { color-scheme: dark; --bg:#1e1e1e; --ink:#d4d4d4; --muted:#a8a8a8; --rule:#444; --code:#151515; --accent:#80cfff; }
+  * { box-sizing:border-box; } body { margin:0; background:var(--bg); color:var(--ink); font:18px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+  main { width:min(100% - 72px, 1120px); margin:0 auto; padding:28px 0 72px; } h1,h2,h3 { line-height:1.25; margin:1.6em 0 .65em; padding-bottom:.34em; border-bottom:1px solid var(--rule); } h1 { font-size:2.1rem; margin-top:0; } h2 { font-size:1.5rem; } h3 { font-size:1.16rem; border:0; padding:0; }
+  p { margin:.7em 0 1.15em; } ul,ol { padding-left:1.5em; margin:.5em 0 1.1em; } li { margin:.28em 0; } hr { border:0; border-top:1px solid var(--rule); margin:1.45em 0; } strong { color:#f1f1f1; } code { background:var(--code); border-radius:4px; padding:.12em .32em; font: .88em Consolas,"Cascadia Code",monospace; } pre { overflow:auto; padding:16px; background:var(--code); border:1px solid var(--rule); border-radius:7px; } pre code { padding:0; background:transparent; } .table-wrap { overflow:auto; margin:1em 0 1.35em; } table { border-collapse:collapse; min-width:620px; width:fit-content; } th,td { text-align:left; padding:.45em .7em; border-bottom:1px solid var(--rule); vertical-align:top; } th { color:#f1f1f1; } .source { display:inline-block; color:var(--accent); text-decoration:none; margin-bottom:1.4em; } .source:hover { text-decoration:underline; }
+  @media (max-width:600px) { body{font-size:16px;} main{width:min(100% - 32px,1120px); padding-top:20px;} h1{font-size:1.75rem;} }
+</style></head><body><main><a class="source" href="Module3_Study_Notes_Enhanced.md">View Markdown source</a><h1>Module 03 — Cloud Data Warehousing and Querying</h1>
+<h2>Study Notes (matches your tracker&#39;s Stage 3.1 – 3.4) — Enhanced Edition (Theory-Focused)</h2>
+<hr>
+<h2>Stage 3.1 — Data Warehouse Architectures</h2>
+<h3>Cloud Data Warehouse Architectures — key features</h3>
+<p><strong>Recap from Module 1:</strong> A data warehouse is a database purpose-built for <strong>analysis</strong> (OLAP) — fast on big scanning queries, not on quick individual transactions like an app&#39;s checkout.</p>
+<p><strong>OLTP vs OLAP — the distinction the whole module rests on:</strong></p>
+<div class="table-wrap"><table><thead><tr><th></th><th>OLTP (RDS, Module 1)</th><th>OLAP (Warehouse, this module)</th></tr></thead><tbody>
+<tr><td>Purpose</td><td>Run the business (place an order)</td><td>Analyze the business (total sales trend)</td></tr>
+<tr><td>Typical query</td><td>&quot;Insert this one order&quot;</td><td>&quot;Sum revenue across 3 years, grouped by region&quot;</td></tr>
+<tr><td>Query touches</td><td>A few rows</td><td>Millions of rows, few columns</td></tr>
+<tr><td>Storage layout</td><td>Row-based (fetch a whole record fast)</td><td>Column-based (scan one field across everything fast)</td></tr>
+<tr><td>Optimized for</td><td>Many small, fast writes</td><td>Few large, heavy reads</td></tr>
+</tbody></table></div>
+<p>This is the single most exam-relevant distinction in the module — almost every other concept below exists <em>because</em> OLAP has this different access pattern from OLTP.</p>
+<p><strong>Key architectural features that make OLAP fast:</strong></p>
+<ul>
+<li><strong>Columnar storage</strong> — same concept from Module 2 (Parquet/ORC). The warehouse stores data column-by-column internally, so scanning &quot;just the sales column across 10 million rows&quot; is fast. This is <em>why</em> a warehouse can answer in seconds what would take an OLTP database minutes or longer.</li>
+<li><strong>Massively Parallel Processing (MPP)</strong> — the warehouse splits a big query across many machines/nodes at once, each working on a slice of the data, then combines results. This is the same &quot;split the work, then combine&quot; idea as MapReduce from Module 1, just built directly into the database engine rather than being a separate framework you invoke.</li>
+<li><strong>Compute/storage separation</strong> (its own point below) — the warehouse can scale its processing power independently of how much data it&#39;s storing.</li>
+</ul>
+<p><strong>Easy example:</strong> Imagine 50 people each checking a different shelf in a warehouse for a product, instead of 1 person walking the entire warehouse alone — that&#39;s MPP. The warehouse finds your answer fast because it divides the search.</p>
+<p><strong>Why MPP specifically needs columnar storage to be effective:</strong> if the data were row-based, each node would still have to read entire rows (including columns nobody asked for) before discarding the unneeded parts — wasting the parallelism. Columnar storage means each node only pulls the relevant column slice for its shard, so the parallel work is actually proportional to what&#39;s needed, not the whole record width. The two features compound each other rather than being independent tricks.</p>
+<h3>Redshift (AWS)</h3>
+<ul>
+<li>AWS&#39;s data warehouse service. You provision a <strong>cluster</strong> (a set of machines) sized for your workload, and it stays running (and billing) until you resize/pause it.</li>
+<li>Internally organized as a <strong>leader node</strong> (receives the query, plans how to split it, combines final results) and multiple <strong>compute nodes</strong> (each holds a slice of the data and does the actual scanning) — this is the concrete machinery behind the &quot;50 people checking shelves&quot; MPP example above.</li>
+<li><strong>Easy example:</strong> Like renting a fixed-size team of workers who are always on standby, ready to answer any question about your data instantly — but you pay for them whether they&#39;re busy or idle.</li>
+</ul>
+<h3>Synapse (Azure)</h3>
+<ul>
+<li>Azure&#39;s equivalent — combines data warehousing and big data analytics (Spark) in one service. Conceptually does the same job as Redshift, Microsoft ecosystem.</li>
+<li>Distinguishing detail worth remembering: Synapse deliberately blends the <strong>provisioned warehouse</strong> model (like Redshift) <em>and</em> the <strong>serverless query</strong> model (like Athena, see Stage 3.3) under one product umbrella — Redshift and Athena are two separate AWS services, but Synapse offers both modes within itself.</li>
+</ul>
+<h3>BigQuery (GCP)</h3>
+<ul>
+<li>Google&#39;s data warehouse — but architecturally different in one important way: it&#39;s <strong>serverless by default</strong>. You don&#39;t provision a cluster; you just run a query and pay for the data scanned. (This blurs into the &quot;serverless querying&quot; idea in Stage 3.3 — BigQuery does both jobs.)</li>
+<li>Conceptual reason this matters: Redshift asks &quot;how big a team do I keep on standby?&quot; (capacity-planning problem). BigQuery removes that question entirely — there&#39;s no cluster to size, only a query to run. This is the same trade-off pattern you saw with EC2 (provisioned) vs. Lambda (serverless) in Module 1/4, just applied to the warehouse layer.</li>
+</ul>
+<h3>Compute/storage separation concept</h3>
+<p><strong>The old way (traditional databases):</strong> compute (processing power) and storage (where data sits) were bundled together on the same physical machine. Want more storage? You had to buy more compute too, even if you didn&#39;t need it.</p>
+<p><strong>The cloud warehouse way:</strong> compute and storage are <strong>separate services</strong> that scale independently.</p>
+<p><strong>Easy example:</strong> Imagine a restaurant where the kitchen (compute) and the food storage fridge (storage) used to have to be the same size, bolted together. Cloud warehouses let you have a huge fridge (lots of cheap storage) with a small kitchen (little compute) most of the time, and temporarily hire more chefs (scale up compute) only when a big order comes in — without touching the fridge at all.</p>
+<p><strong>Why it matters:</strong> You can store years of historical data cheaply, and only pay extra compute when you actually run a big analytical query on it. This is also <em>the</em> architectural reason serverless querying (Stage 3.3) is even possible — once storage and compute are decoupled, &quot;compute&quot; can shrink all the way down to &quot;pay only for the seconds a single query runs,&quot; which is exactly what Athena/BigQuery do.</p>
+<hr>
+<h2>Stage 3.2 — Data Loading and SQL</h2>
+<h3>Data Loading and Management — best practices</h3>
+<p>Getting data <em>into</em> a warehouse efficiently matters as much as querying it. Key practices:</p>
+<ul>
+<li><strong>Bulk loading over row-by-row inserts</strong> — loading a million rows one at a time is painfully slow; warehouses are built to ingest large batches/files at once (e.g., loading a Parquet file directly from S3). The reason row-by-row is so much worse isn&#39;t just &quot;more commands&quot; — each individual <code>INSERT</code> typically triggers its own transaction overhead, logging, and index updates, all of which get amortized across the whole batch when you bulk-load instead.</li>
+<li><strong>Load during off-peak hours</strong> where possible, so loading doesn&#39;t compete with users running queries — loading is itself a compute-heavy operation on the same cluster, so it directly steals MPP capacity from anyone querying at the same time.</li>
+<li><strong>Validate data before loading</strong> — catching bad data at the source is cheaper than cleaning it after it&#39;s sitting in the warehouse. This connects directly to the &quot;veracity&quot; idea from Module 1&#39;s 5 Vs — validation is the concrete mechanism that protects veracity at load time.</li>
+</ul>
+<h3>Distribution and partitioning strategies</h3>
+<p><strong>Partitioning</strong> — splitting a huge table into smaller chunks based on a column, usually date (e.g., one partition per day/month). When you query &quot;sales in March,&quot; the warehouse only scans the March partition, not the entire table.</p>
+<p><strong>Distribution</strong> — deciding <em>how data is spread across the multiple machines</em> in the warehouse cluster (relevant for MPP systems like Redshift). Data related to the same query (e.g., a customer&#39;s orders) is ideally kept on the same machine, so the warehouse doesn&#39;t need to shuffle data between machines mid-query.</p>
+<p><strong>The distinction that&#39;s easy to blur (exam favorite):</strong> partitioning is about <em>skipping</em> irrelevant data before scanning even starts; distribution is about <em>arranging</em> data across nodes so that, once scanning does start, the nodes don&#39;t have to talk to each other more than necessary. One reduces how much you read; the other reduces how much the nodes communicate. A well-designed warehouse table gets both right independently — you can partition well but distribute badly (nodes still shuffle data constantly), or vice versa.</p>
+<p><strong>Easy example — partitioning:</strong> Like organizing a library by year of publication instead of one giant unsorted pile. Looking for a 2023 book? Go straight to the 2023 shelf, ignore the rest.</p>
+<p><strong>Easy example — distribution:</strong> Like assigning each of the 50 warehouse workers (from the MPP example) a specific, logically grouped set of shelves, so a worker rarely needs to walk over and ask another worker for something.</p>
+<p><strong>Common distribution strategies (conceptual, not memorization-heavy, but good to recognize by name):</strong></p>
+<ul>
+<li><strong>Even/Round-robin distribution</strong> — rows spread evenly across nodes with no particular logic; simple, but unrelated data ends up scattered, so joins often require shuffling.</li>
+<li><strong>Key-based distribution</strong> — rows distributed based on a specific column&#39;s value (e.g., <code>customer_id</code>), so all of one customer&#39;s rows land on the same node — ideal when queries frequently join or group by that column.</li>
+<li><strong>All/Broadcast distribution</strong> — a full copy of a (usually small) table is kept on every node, so it never needs to be shuffled when joined against larger, distributed tables.</li>
+</ul>
+<h3>SQL for Cloud Warehouses — advanced SQL concepts</h3>
+<p>Beyond basic <code>SELECT</code>/<code>WHERE</code>, warehouse work leans on:</p>
+<ul>
+<li><strong>Aggregations</strong> — <code>SUM</code>, <code>AVG</code>, <code>COUNT</code>, <code>GROUP BY</code> (e.g., &quot;total sales per region&quot;)</li>
+<li><strong>Window functions</strong> — calculations across a set of rows related to the current row <em>without collapsing them into one result</em> (e.g., &quot;running total of sales by day,&quot; &quot;rank each product by revenue within its category&quot;). The key conceptual difference from <code>GROUP BY</code>: <code>GROUP BY</code> reduces N rows down to fewer summary rows; a window function keeps all N rows but adds a calculated column alongside each one.</li>
+<li><strong>JOINs across large tables</strong> — combining data from multiple tables (e.g., orders + customers + products), which is where partitioning/distribution choices really affect speed — a join between two tables distributed on the same key can happen entirely locally on each node; a join between mismatched distribution keys forces the cluster to shuffle rows between nodes first, which is much slower.</li>
+</ul>
+<h3>Performance tuning basics</h3>
+<ul>
+<li>Query only the columns you need (<code>SELECT specific_columns</code>, not <code>SELECT *</code>) — matters more in columnar warehouses since it directly controls how much data gets scanned.</li>
+<li>Filter early using partitioned columns (like date) so the warehouse skips irrelevant data before doing heavier work.</li>
+<li>Avoid unnecessary complex joins on huge unfiltered tables — filter first, join second where possible. The underlying principle tying all three together: <strong>reduce the amount of data the engine touches as early as possible in the query plan</strong> — every optimization here is really the same idea applied at a different stage (column selection, row selection, join order).</li>
+</ul>
+<hr>
+<h2>Stage 3.3 — Serverless Querying</h2>
+<h3>The core idea</h3>
+<p><strong>Serverless querying = run SQL directly on data sitting in a data lake (S3), without loading it into a warehouse or managing any cluster at all.</strong> You pay per query (usually based on how much data it scans), not for a warehouse sitting idle 24/7.</p>
+<p><strong>Easy example:</strong> Instead of hiring a permanent full-time team (a provisioned warehouse) to always be ready for questions, you call in a freelancer only when you have a question, pay them just for that one task, and they leave when done.</p>
+<p><strong>Why this is only possible because of compute/storage separation (Stage 3.1):</strong> once storage (S3, the lake) is fully decoupled from compute, there&#39;s no architectural requirement that &quot;compute&quot; be a standing cluster at all — it can be a transient process spun up for the duration of one query and destroyed immediately after. Serverless querying is compute/storage separation taken to its logical extreme.</p>
+<h3>Athena (AWS)</h3>
+<ul>
+<li>Runs standard SQL queries directly against files (like Parquet/CSV) sitting in S3.</li>
+<li>This is where <strong>Stage 2.3&#39;s storage formats directly matter</strong>: an Athena query on Parquet data is dramatically cheaper and faster than the same query on raw CSV, because Athena bills by data scanned — and columnar formats mean scanning less.</li>
+<li>Athena relies on the <strong>Glue Data Catalog</strong> (Module 2) to know what tables/columns exist in your S3 data in the first place — without a catalog entry, Athena has no schema to query against. This is the direct link between Module 2&#39;s crawler work and being able to run a single SQL query in Module 3.</li>
+</ul>
+<h3>Synapse Serverless (Azure)</h3>
+<ul>
+<li>Azure&#39;s equivalent to Athena — query data lake files directly with SQL, no cluster to manage, pay per query.</li>
+</ul>
+<h3>BigQuery (GCP)</h3>
+<ul>
+<li>As mentioned in 3.1, BigQuery already works this way by default — it&#39;s simultaneously &quot;the warehouse&quot; and &quot;the serverless query engine&quot; for GCP, which is why it doesn&#39;t have a clearly separate name like Athena/Synapse Serverless. Conceptually, think of AWS and Azure as offering <strong>two distinct products</strong> (a provisioned warehouse + a separate serverless query tool) while GCP collapses both roles into <strong>one product</strong> that behaves serverlessly regardless of which &quot;mode&quot; you think you&#39;re using.</li>
+</ul>
+<h3>Analyzing query performance and cost</h3>
+<p>The two are directly linked in serverless tools: <strong>more data scanned = slower AND more expensive.</strong> This connects everything from earlier stages into one practical skill:</p>
+<ul>
+<li>Using Parquet instead of CSV → less data scanned → cheaper + faster</li>
+<li>Using partitioned data (e.g., folder-per-date in S3) → the query engine skips irrelevant partitions entirely</li>
+<li>Selecting only needed columns → columnar formats let the engine skip unused columns physically on disk</li>
+</ul>
+<p><strong>Quick comparison — Warehouse vs Serverless Query:</strong></p>
+<div class="table-wrap"><table><thead><tr><th></th><th>Provisioned Warehouse (Redshift)</th><th>Serverless Query (Athena)</th></tr></thead><tbody>
+<tr><td>Setup</td><td>Cluster must be running</td><td>No setup, query directly</td></tr>
+<tr><td>Billing</td><td>Pay for cluster uptime</td><td>Pay per query (data scanned)</td></tr>
+<tr><td>Best for</td><td>Frequent, heavy, predictable workloads</td><td>Occasional or exploratory queries</td></tr>
+<tr><td>Data location</td><td>Loaded into the warehouse</td><td>Stays in the data lake (S3)</td></tr>
+</tbody></table></div>
+<p><strong>The underlying economic logic (this is the part exams like to probe as an &quot;evaluate/analyze&quot; question, per Module 5.4&#39;s Bloom&#39;s-level framing):</strong> a provisioned cluster has a <em>fixed</em> cost regardless of usage — cheap per-query only if you run enough queries to amortize that fixed cost. Serverless has <em>zero</em> fixed cost but a <em>per-query</em> cost — cheap overall only if query volume stays low. There&#39;s a theoretical break-even query volume above which provisioned becomes cheaper than serverless; the exact number depends on cluster size and data volume, but the <em>shape</em> of that trade-off (fixed cost vs. variable cost) is the concept to know, not a specific number.</p>
+<hr>
+<h2>Stage 3.4 — Practical Component</h2>
+<p>Quick reference — what you should be able to <em>do</em> (see the full walkthroughs in your hands-on lab material; theory takeaways above are the priority for this pass):</p>
+<ul>
+<li>[ ] Set up a cloud data warehouse — launch a small Redshift cluster (or equivalent) on a free/trial tier</li>
+<li>[ ] Apply data loading techniques — bulk-load a CSV or Parquet file from S3 into the warehouse</li>
+<li>[ ] Run analytical SQL queries — practice <code>GROUP BY</code>, aggregations, and at least one window function</li>
+<li>[ ] Compare performance across approaches — run the same query on raw CSV vs. Parquet, or on partitioned vs. unpartitioned data, and note the time/cost difference</li>
+<li>[ ] Apply serverless querying on a data lake — run an Athena (or Synapse Serverless) query directly on S3 data without loading it anywhere</li>
+<li>[ ] Use a graphical ETL tool to clean a dataset — e.g., AWS Glue Studio&#39;s visual interface to clean/transform a dataset before analysis</li>
+</ul>
+<hr>
+<h2>Module 3 — Self-Test (with Answer Key)</h2>
+<p>Try answering first, then check.</p>
+<p><strong>1. What is MPP, and how does it relate to MapReduce from Module 1?</strong> &gt; MPP (Massively Parallel Processing) splits a query across many machines/nodes at once, each processing a slice of the data, then combines the results — the same &quot;split, process, combine&quot; idea as MapReduce, except it&#39;s built directly into the warehouse engine rather than being a separate framework you run manually.</p>
+<p><strong>2. What does &quot;compute/storage separation&quot; mean, and why does it save money?</strong> &gt; Compute (processing power) and storage (where data lives) are separate, independently-scaling services instead of being bundled on the same machine. It saves money because you can store large volumes of data cheaply while only paying extra for compute during the moments you actually run heavy queries — you&#39;re not forced to buy more processing power just because you need more storage, or vice versa.</p>
+<p><strong>3. What&#39;s the difference between partitioning and distribution?</strong> &gt; Partitioning splits a table into chunks based on a column (usually date) so queries can skip irrelevant chunks entirely before scanning — it reduces <em>how much data is read</em>. Distribution decides how data is spread across the multiple machines in an MPP cluster so related data sits together — it reduces <em>how much nodes have to communicate/shuffle data</em> during a query.</p>
+<p><strong>4. What is serverless querying, and how is its billing different from a provisioned warehouse?</strong> &gt; Serverless querying runs SQL directly on data sitting in a data lake (e.g., S3) without provisioning or managing any cluster. Billing is per-query, based on how much data the query scans — versus a provisioned warehouse, which bills for cluster uptime regardless of whether it&#39;s actively being queried.</p>
+<p><strong>5. Why does querying Parquet data via Athena cost less than querying the same data in CSV?</strong> &gt; Athena bills by the amount of data scanned. Parquet is columnar, so a query only reads the specific columns it needs and skips the rest on disk. CSV is row-based, so the engine has to scan entire rows (all columns) even if the query only needs one or two fields — scanning more data means a higher bill.</p>
+<p><strong>6. When would you choose a provisioned warehouse (Redshift) over serverless querying (Athena), or vice versa?</strong> &gt; Choose a provisioned warehouse for frequent, heavy, predictable workloads — the fixed cluster cost gets amortized across constant use, and query performance is more consistent. Choose serverless querying for occasional or exploratory queries — you avoid paying for a cluster that sits idle most of the time, even though each individual query might cost a bit more per-run than an already-running cluster would.</p>
+<p>If you can answer all 6 without scrolling up, Module 3 is done — tick off Stage 3.1–3.4 in your tracker.</p></main></body></html>

@@ -1,0 +1,128 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Module 4 Study Notes</title><style>
+  :root { color-scheme: dark; --bg:#1e1e1e; --ink:#d4d4d4; --muted:#a8a8a8; --rule:#444; --code:#151515; --accent:#80cfff; }
+  * { box-sizing:border-box; } body { margin:0; background:var(--bg); color:var(--ink); font:18px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+  main { width:min(100% - 72px, 1120px); margin:0 auto; padding:28px 0 72px; } h1,h2,h3 { line-height:1.25; margin:1.6em 0 .65em; padding-bottom:.34em; border-bottom:1px solid var(--rule); } h1 { font-size:2.1rem; margin-top:0; } h2 { font-size:1.5rem; } h3 { font-size:1.16rem; border:0; padding:0; }
+  p { margin:.7em 0 1.15em; } ul,ol { padding-left:1.5em; margin:.5em 0 1.1em; } li { margin:.28em 0; } hr { border:0; border-top:1px solid var(--rule); margin:1.45em 0; } strong { color:#f1f1f1; } code { background:var(--code); border-radius:4px; padding:.12em .32em; font: .88em Consolas,"Cascadia Code",monospace; } pre { overflow:auto; padding:16px; background:var(--code); border:1px solid var(--rule); border-radius:7px; } pre code { padding:0; background:transparent; } .table-wrap { overflow:auto; margin:1em 0 1.35em; } table { border-collapse:collapse; min-width:620px; width:fit-content; } th,td { text-align:left; padding:.45em .7em; border-bottom:1px solid var(--rule); vertical-align:top; } th { color:#f1f1f1; } .source { display:inline-block; color:var(--accent); text-decoration:none; margin-bottom:1.4em; } .source:hover { text-decoration:underline; }
+  @media (max-width:600px) { body{font-size:16px;} main{width:min(100% - 32px,1120px); padding-top:20px;} h1{font-size:1.75rem;} }
+</style></head><body><main><a class="source" href="Module4_Study_Notes_Enhanced.md">View Markdown source</a><h1>Module 04 — Cloud Data Pipelines and Machine Learning</h1>
+<h2>Study Notes (matches your tracker&#39;s Stage 4.1 – 4.5) — Enhanced Edition (Theory-Focused)</h2>
+<hr>
+<h2>Stage 4.1 — Managed ETL/ELT Services</h2>
+<p><strong>Recap from Module 1:</strong> ETL/ELT is the pipeline that moves data from source → destination while cleaning/transforming it. This stage is about the actual <em>tools</em> that run that pipeline for you on the cloud, instead of you writing and scheduling scripts by hand.</p>
+<h3>AWS Glue</h3>
+<ul>
+<li>A <strong>managed ETL service</strong>. You point it at a data source (like S3), it can auto-detect the schema (using the Glue Data Catalog from Module 2), and you write or generate a transformation job (Python/Spark under the hood) that cleans and moves the data.</li>
+<li><strong>Easy example:</strong> Like hiring a cleaning service that already knows your house&#39;s layout (the catalog) and just needs you to say &quot;clean the kitchen and put dishes in the cupboard&quot; (the transformation logic) — you don&#39;t manage the cleaning equipment yourself.</li>
+<li>Worth noting <em>why</em> Glue is &quot;managed&quot;: under the hood it&#39;s running Spark jobs (Module 1&#39;s Spark), but you never provision or size the cluster yourself — Glue allocates and tears down the compute automatically per job run. This is the same &quot;managed&quot; pattern as RDS in Module 1: the underlying engine is a familiar technology, the cloud service just hides the operational burden of running it.</li>
+</ul>
+<h3>Azure Data Factory</h3>
+<ul>
+<li>Azure&#39;s equivalent — a managed pipeline-orchestration and ETL service. Same job as Glue, Microsoft ecosystem, with a strong visual drag-and-drop pipeline builder.</li>
+<li>Conceptually Data Factory sits closer to Airflow (below) than to Glue in one respect: it explicitly brands itself as an <em>orchestration</em> tool first, with transformation capability built in — whereas AWS keeps these as two cleanly separate services (Glue = transform, Airflow/Managed Workflows = orchestrate). Good to know if a question asks you to map Azure&#39;s single-service model onto AWS&#39;s two-service model.</li>
+</ul>
+<h3>Google Cloud Dataflow/Dataproc</h3>
+<ul>
+<li><strong>Dataflow</strong> — GCP&#39;s managed service for both batch and streaming data processing (built on Apache Beam). The Beam foundation is the key differentiator: Beam is a unified programming model where you write <em>one</em> pipeline definition that can run in either batch or streaming mode — you don&#39;t rewrite the job depending on which pattern you need (contrast this with the Batch vs. Streaming tooling split described in Stage 4.4, where AWS/Azure generally use separate tools for each mode).</li>
+<li><strong>Dataproc</strong> — GCP&#39;s managed Hadoop/Spark cluster service (closer to &quot;Spark-as-a-service&quot;, conceptually the GCP counterpart to AWS EMR from Module 1).</li>
+<li>Both do the ETL/processing job, just GCP&#39;s flavor of it — but Dataflow leans toward the &quot;fully managed, don&#39;t think about clusters&quot; end of the spectrum, while Dataproc leans toward &quot;managed cluster, but still a cluster you can configure,&quot; similar to the Glue-vs-EMR distinction on AWS.</li>
+</ul>
+<h3>Apache Airflow — visual pipeline orchestration</h3>
+<p><strong>This is a different job from Glue/Data Factory — don&#39;t confuse them.</strong></p>
+<ul>
+<li>Glue/Data Factory <em>do</em> the actual data transformation.</li>
+<li>Airflow <strong>orchestrates</strong> — it decides <em>when</em> and <em>in what order</em> different jobs run, and what happens if one fails. Think of it as the project manager, not the worker.</li>
+</ul>
+<p><strong>Core concept: DAG (Directed Acyclic Graph)</strong> — a pipeline in Airflow is defined as a sequence of steps with dependencies (e.g., &quot;Step B can only start after Step A finishes successfully&quot;), with no loops allowed (acyclic).</p>
+<p><strong>Why &quot;acyclic&quot; matters, not just &quot;graph&quot;:</strong> if loops were allowed, a pipeline could reference its own earlier step and create infinite/ambiguous execution order — Airflow needs a guaranteed starting point and a guaranteed ending point to know the pipeline will actually terminate. This is the same underlying reason database transaction dependency graphs and build-tool dependency graphs (e.g., Makefiles) are also required to be acyclic — it&#39;s a general pattern in any dependency-based scheduling system, not something unique to Airflow.</p>
+<p><strong>Easy example:</strong> A recipe: &quot;boil water → add pasta → drain → add sauce.&quot; Airflow is the person following that recipe in the right order, waiting for each step to finish before starting the next, and stopping/alerting if a step fails (e.g., pasta overflows). Glue/Data Factory would be the actual boiling and draining.</p>
+<p><strong>The orchestrator-vs-worker distinction, generalized:</strong> this same split — a tool that <em>decides what/when</em> vs. a tool that <em>does the actual work</em> — reappears throughout the module. Airflow orchestrates Glue jobs; Kafka (Stage 4.4) doesn&#39;t process data itself, it just carries it to tools that do; even a training job in SageMaker (Stage 4.3) is &quot;orchestrated&quot; by you submitting it, while the actual compute is elsewhere. Recognizing which role a service plays is a recurring exam distinction.</p>
+<hr>
+<h2>Stage 4.2 — Serverless Data Processing</h2>
+<p><strong>Recap:</strong> &quot;Serverless&quot; (from Module 3&#39;s serverless querying) means you don&#39;t manage any server — you just provide code, it runs when triggered, and you pay only for the execution time.</p>
+<h3>AWS Lambda</h3>
+<ul>
+<li>Run a small piece of code (a &quot;function&quot;) in response to a trigger — e.g., &quot;whenever a new file lands in this S3 bucket, automatically run this cleaning script.&quot; No server to provision, no idle cost.</li>
+<li><strong>Easy example:</strong> Like a motion-sensor light — it does nothing until triggered (someone walks by / a file arrives), then runs briefly, then switches off. You don&#39;t pay for the light staying on all day.</li>
+<li>Important architectural constraint worth knowing conceptually: Lambda functions are meant for <strong>short, lightweight</strong> tasks (historically capped at 15 minutes of runtime) — this is <em>why</em> Lambda is positioned as the &quot;glue&quot; connecting bigger services rather than doing the heavy transformation itself. A multi-hour Spark aggregation job belongs in Glue/EMR, not Lambda; Lambda is the trigger/dispatcher, not the workhorse.</li>
+</ul>
+<h3>Azure Functions</h3>
+<ul>
+<li>Azure&#39;s equivalent to Lambda — same trigger-based, pay-per-execution model.</li>
+</ul>
+<p><strong>Why this matters for pipelines:</strong> Lambda/Functions are often the small &quot;glue&quot; pieces connecting bigger services — e.g., a file lands in S3 → Lambda triggers → kicks off a Glue job or notifies Airflow.</p>
+<p><strong>How Stage 4.2 relates back to Stage 3.1&#39;s compute/storage separation:</strong> serverless functions are the same underlying idea (compute decoupled from any standing infrastructure) applied at the <em>code execution</em> layer instead of the <em>query</em> layer. Athena made &quot;compute&quot; mean &quot;a transient query engine&quot;; Lambda makes &quot;compute&quot; mean &quot;a transient function execution.&quot; Same architectural principle, different layer of the stack — recognizing this pattern is useful if a question asks you to compare serverless concepts across modules.</p>
+<hr>
+<h2>Stage 4.3 — Managed ML Platforms</h2>
+<p><strong>Recap from Module 1:</strong> ML Platforms let you train, deploy, and serve ML models without owning GPU hardware.</p>
+<h3>SageMaker (AWS) / Azure ML / Vertex AI (GCP)</h3>
+<p>All three do the same job — different provider, same purpose. Learn SageMaker&#39;s structure well (your syllabus&#39;s practical component is built around it) and treat Azure ML/Vertex AI as the same concept under a different name.</p>
+<h3>ML Platform features — notebooks, training jobs, endpoint deployment, AutoML</h3>
+<p>Break the ML lifecycle into 4 stages, matching what these platforms provide:</p>
+<ol>
+<li><strong>Notebooks</strong> — a hosted coding environment (like Jupyter) where you explore data and write model code, without setting up Python/libraries locally.</li>
+<li><strong>Training jobs</strong> — you submit your training code, SageMaker temporarily rents you a powerful (often GPU) machine just for the training duration, then releases it. You pay only for training time — same &quot;rental&quot; idea as EC2 Compute from Module 1.</li>
+<li><strong>Endpoint deployment</strong> — once trained, the model gets hosted as a live API. Other applications send it data and get a prediction back in real time.</li>
+<li><strong>AutoML</strong> — for when you don&#39;t want to manually choose/tune a model. You feed in labeled data, and the platform automatically tries multiple algorithms and picks the best-performing one.</li>
+</ol>
+<p><strong>Why these 4 stages are sequential, and why that sequence matters conceptually:</strong> each stage produces the input the next stage needs — a notebook produces a trained-model <em>definition</em>, a training job produces trained model <em>weights/artifacts</em>, an endpoint takes those artifacts and makes them <em>callable</em>. AutoML is really a shortcut that collapses &quot;notebook exploration + training job&quot; into one automated step when you don&#39;t want to hand-pick the algorithm — it still ends at the same endpoint-deployment stage as the manual path. Seeing AutoML as a <em>shortcut through</em> stages 1-2, rather than a separate 5th stage, is the more exam-accurate way to think about it.</p>
+<p><strong>Easy example — the full lifecycle:</strong> Swiggy&#39;s delivery-time prediction: a data scientist explores past delivery data in a <strong>notebook</strong>, submits a <strong>training job</strong> on that data, the trained model gets hosted as an <strong>endpoint</strong>, and the Swiggy app calls that endpoint every time you order to show &quot;arriving in 24 mins.&quot;</p>
+<p><strong>A second worked example, to make sure the lifecycle generalizes beyond delivery times:</strong> A bank building a loan-default risk model. Notebook: a data scientist explores historical loan repayment data, tries a few feature combinations (income, credit history, loan amount). Training job: once a feature set looks promising, it&#39;s submitted as a formal training job on the full historical dataset — this run is logged with its accuracy metrics. Endpoint: the trained model is deployed as an API. Application use: the bank&#39;s loan-approval system calls that endpoint the moment a new application comes in, gets back a risk score, and uses it to approve/flag the application — all in real time, with no human re-running any code.</p>
+<h3>Applying ML services conceptually to a pipeline</h3>
+<p>The key insight for your syllabus: <strong>ML isn&#39;t standalone — it plugs into the same pipeline you&#39;ve been learning all module.</strong></p>
+<pre><code>Raw data (S3) → ETL/ELT (Glue/Data Factory, orchestrated by Airflow)
+    → Cleaned data → ML Platform (train + deploy model)
+    → Endpoint → Application uses the prediction</code></pre>
+<p>*<em>Why ML has to come </em>after<em> ETL/ELT in this diagram, not before:</em><em> models are only as good as the data they&#39;re trained on (&quot;garbage in, garbage out&quot;). Raw data (bronze layer, Module 2) usually has duplicates, missing values, and inconsistent formats — feeding that directly into a training job means the model learns from noise. The cleaned/curated data (silver or gold layer) is what actually gets used for feature engineering and training. This is also why Stage 4.1&#39;s orchestration (Airflow) typically has &quot;run the Glue job&quot; as a DAG step </em>before* &quot;trigger the SageMaker training job&quot; — the dependency in the DAG mirrors this pipeline dependency exactly.</p>
+<hr>
+<h2>Stage 4.4 — Pipeline Architecture and Streaming</h2>
+<h3>Pipeline Architecture Analysis — Batch vs. Streaming patterns</h3>
+<p><strong>Batch processing</strong> — data is collected over a period of time, then processed all at once, on a schedule (e.g., every night at 2 AM, process yesterday&#39;s orders).</p>
+<ul>
+<li>Tools involved: Glue, Data Factory, Spark, Airflow (scheduling the batch job)</li>
+<li><strong>Easy example:</strong> Doing all your laundry once a week, in one big load.</li>
+</ul>
+<p><strong>Streaming processing</strong> — data is processed continuously, the moment it arrives, with little to no delay.</p>
+<ul>
+<li><strong>Easy example:</strong> Washing each item of clothing the instant it gets dirty, one at a time, non-stop.</li>
+</ul>
+<p><strong>When to use which:</strong></p>
+<div class="table-wrap"><table><thead><tr><th></th><th>Batch</th><th>Streaming</th></tr></thead><tbody>
+<tr><td>Latency</td><td>Minutes to hours acceptable</td><td>Seconds or less required</td></tr>
+<tr><td>Example use case</td><td>Monthly sales report</td><td>Fraud detection on a live transaction</td></tr>
+<tr><td>Complexity</td><td>Simpler to build/debug</td><td>More complex, needs careful handling of continuous data</td></tr>
+<tr><td>Typical tools</td><td>Glue, Spark (batch mode), Airflow-scheduled jobs</td><td>Kafka, Spark Streaming, Lambda (event-triggered)</td></tr>
+</tbody></table></div>
+<p><strong>The underlying trade-off, stated as a general principle (this is the &quot;Analyze&quot;-level framing an exam question is likely testing):</strong> batch trades <em>latency</em> for <em>simplicity and efficiency</em> — processing in large chunks lets the system optimize/compress/dedupe across the whole batch at once, and failures are easy to reason about (just re-run the batch). Streaming trades <em>simplicity</em> for <em>latency</em> — you get near-instant results, but every event has to be handled individually and correctly the moment it arrives, with no natural &quot;batch boundary&quot; to fall back on if something goes wrong mid-stream. Neither is strictly better; the right choice depends entirely on how fresh the answer needs to be versus how much operational complexity you&#39;re willing to take on.</p>
+<p><strong>A subtlety worth knowing: &quot;batch&quot; and &quot;streaming&quot; describe processing pattern, not data source.</strong> The same raw data (e.g., order events) could be processed either way depending on business need — a batch job might run nightly over the same Kafka topic that a separate streaming consumer reads in real time. It&#39;s common to run both patterns off one source simultaneously (this is sometimes called a &quot;lambda architecture&quot; — not to be confused with AWS Lambda the service — though your syllabus doesn&#39;t require that specific term).</p>
+<h3>Introduction to real-time streaming — Apache Kafka</h3>
+<p><strong>What Kafka actually is:</strong> A messaging system that lets data producers (apps, sensors, logs) publish a continuous stream of events, and consumers (other services) read that stream in real time, independently and at their own pace.</p>
+<p><strong>Core concepts:</strong></p>
+<ul>
+<li><strong>Producer</strong> — something that sends data into Kafka (e.g., a food-delivery app sending &quot;order placed&quot; events)</li>
+<li><strong>Topic</strong> — a named channel/category the data flows through (e.g., a topic called &quot;orders&quot;)</li>
+<li><strong>Consumer</strong> — something that reads data from a topic (e.g., a service updating a live dashboard)</li>
+</ul>
+<p><strong>Why Kafka needs to decouple producers from consumers, conceptually:</strong> without something like Kafka in between, the order-placing app would need to know directly about every downstream system that cares about new orders (a dashboard, a fraud-check service, an inventory system) and call each one individually — if a new consumer is added later, the producer&#39;s code has to change too. Kafka inverts this: the producer only knows about the topic, and any number of consumers can independently start reading from it, present or future, without the producer ever being modified. This decoupling is the actual architectural reason streaming systems use a message broker instead of direct service-to-service calls.</p>
+<p><strong>Easy example:</strong> Kafka is like a live news ticker. Reporters (producers) post updates continuously to a channel (topic). Anyone watching (consumers) — a TV channel, a website, a mobile app — reads the same live feed independently, at their own pace, without the reporter needing to know who&#39;s watching.</p>
+<p><strong>Why it connects to Batch vs. Streaming above:</strong> Kafka is the backbone that <em>enables</em> streaming architecture — it&#39;s literally the pipe that carries continuous data, which downstream tools (like Spark Streaming) then process in real time. Kafka itself doesn&#39;t do any processing/transformation — it&#39;s pure transport, which ties back to the orchestrator-vs-worker distinction from Stage 4.1: Kafka is neither the orchestrator nor the worker, it&#39;s the <em>pipe</em> connecting them.</p>
+<hr>
+<h2>Stage 4.5 — Practical Component</h2>
+<p>Quick reference — what you should be able to <em>do</em> (full walkthroughs belong in your hands-on lab material; theory above is the priority for this pass):</p>
+<ul>
+<li>[ ] Build and orchestrate a simple ETL pipeline using Apache Airflow — define a basic DAG with 2–3 dependent steps (e.g., extract → transform → load), containerized (Docker)</li>
+<li>[ ] Perform distributed data processing using Apache Spark — run a Spark job on a sample dataset (e.g., aggregate/group data), notice how it splits work across partitions</li>
+<li>[ ] Train and track a machine learning model — use a notebook (SageMaker or local) to train a simple model, log its metrics</li>
+<li>[ ] Deploy a trained model as a REST API endpoint (FastAPI + Docker) — wrap your trained model in a FastAPI app, containerize it, send it a test request and get a prediction back</li>
+<li>[ ] Demonstrate real-time streaming analytics using Kafka — set up a basic producer/consumer pair, send a few events through a topic, confirm the consumer receives them</li>
+<li>[ ] Analyze a scalable cloud-native pipeline architecture end-to-end — given a scenario, identify which piece (storage, ETL, orchestration, ML) each part of the architecture maps to</li>
+</ul>
+<hr>
+<h2>Module 4 — Self-Test (with Answer Key)</h2>
+<p>Try answering first, then check.</p>
+<p><strong>1. What&#39;s the difference between what Glue/Data Factory does and what Airflow does?</strong> &gt; Glue/Data Factory perform the actual data transformation (extract, clean, reshape, load). Airflow orchestrates — it decides when and in what order different jobs run, and handles failures/retries. Glue/Data Factory are the worker; Airflow is the project manager.</p>
+<p><strong>2. What does &quot;serverless&quot; mean in the context of Lambda/Azure Functions, and how does it connect to Module 3&#39;s serverless querying?</strong> &gt; Serverless means you don&#39;t provision or manage any server — you supply code, it runs only when triggered, and you pay only for the execution time. It&#39;s the same architectural principle as Module 3&#39;s serverless querying (Athena/BigQuery), just applied at the code-execution layer instead of the query layer — both are only possible because compute has been fully decoupled from any standing infrastructure.</p>
+<p><strong>3. Name the 4 stages of the ML lifecycle covered by managed ML platforms.</strong> &gt; Notebooks (explore data, write model code) → Training jobs (rent compute to train on the full dataset) → Endpoint deployment (host the trained model as a live API) → AutoML (an automated shortcut that tries multiple algorithms and picks the best one, still ending at endpoint deployment).</p>
+<p><strong>4. Explain the difference between batch and streaming processing, with one example use case each.</strong> &gt; Batch processing collects data over a period and processes it all at once on a schedule (e.g., a monthly sales report) — simpler to build, but with latency of minutes to hours. Streaming processing handles data continuously the moment it arrives (e.g., fraud detection on a live transaction) — near-instant results, but more complex to build since every event must be handled individually and correctly.</p>
+<p><strong>5. In Kafka, what are a producer, a topic, and a consumer?</strong> &gt; A producer sends data into Kafka (e.g., an app publishing &quot;order placed&quot; events). A topic is a named channel the data flows through (e.g., &quot;orders&quot;). A consumer reads data from a topic (e.g., a dashboard service). This structure decouples producers from consumers — the producer never needs to know who&#39;s reading its data.</p>
+<p><strong>6. Sketch (mentally or on paper) the full pipeline: raw data → ETL → ML → prediction used by an app. Which module covered each piece?</strong> &gt; Raw data lands in object storage/data lake (Module 2) → ETL/ELT cleans and moves it, orchestrated by Airflow (Module 4, Stage 4.1) → cleaned data feeds a managed ML platform for training and deployment (Module 4, Stage 4.3) → the resulting endpoint is called by an application in real time to get predictions. (Data warehousing/serverless querying from Module 3 can also sit alongside this pipeline as an alternative/complementary destination for the cleaned data, feeding dashboards rather than ML.)</p>
+<p>If you can answer all 6 without scrolling up, Module 4 is done — tick off Stage 4.1–4.5 in your tracker.</p></main></body></html>
